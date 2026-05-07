@@ -1,10 +1,15 @@
 import { Card } from "@/components/ui/card";
-import { Domain, scoreColor } from "@/lib/mock-data";
+import { scoreColor } from "@/lib/soc-api";
 import { ArrowDown, ArrowUp, Shield, Network, Laptop, Cloud, FileCheck } from "lucide-react";
 
-const icons = { identity: Shield, network: Network, endpoint: Laptop, cloud: Cloud, compliance: FileCheck };
+const icons: Record<string, any> = { identity: Shield, network: Network, endpoint: Laptop, cloud: Cloud, compliance: FileCheck };
 
-export function DomainCard({ d }: { d: Domain }) {
+interface DomainCardProps {
+  key: string; label: string; score: number; weight: number; trend: number;
+  controls: { passed: number; total: number };
+}
+
+export function DomainCard({ d }: { d: DomainCardProps & { key: string } }) {
   const color = scoreColor(d.score);
   const colorVar = `var(--color-${color})`;
   const Icon = icons[d.key];
