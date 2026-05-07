@@ -1,11 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ScoreGauge } from "@/components/ScoreGauge";
 import { DomainCard } from "@/components/DomainCard";
 import { SeverityBadge } from "@/components/SeverityBadge";
 import { Card } from "@/components/ui/card";
-import { domains, globalScore, criticalPenaltyActive, vulnerabilities, scoreTrend, recommendations } from "@/lib/mock-data";
-import { Activity, AlertTriangle, ShieldCheck, TrendingUp } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Activity, AlertTriangle, ShieldCheck, TrendingUp, Loader2 } from "lucide-react";
+import {
+  useDomains, useVulnerabilities, useRecommendations, useSnapshots,
+  computeGlobalScore,
+} from "@/lib/soc-api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,10 +20,35 @@ export const Route = createFileRoute("/")({
 });
 
 function Overview() {
-  const open = vulnerabilities.filter((v) => v.status === "open").length;
-  const critical = vulnerabilities.filter((v) => v.severity === "critical").length;
-  const max = Math.max(...scoreTrend.map((s) => s.score));
-  const min = Math.min(...scoreTrend.map((s) => s.score));
+  const domainsQ = useDomains();
+  const vulnsQ = useVulnerabilities();
+  const recoQ = useRecommendations();
+  const snapsQ = useSnapshots();
+
+  if (domainsQ.isLoading || vulnsQ.isLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center text-muted-foreground gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" /> <span className="font-mono text-xs">Aggregating telemetry…</span>
+      </div>
+    );
+  }
+
+  const domains = domainsQ.data ?? [];
+  const vulns = vulnsQ.data ?? [];
+  const recos = recoQ.data ?? [];
+  const snaps = snapsQ.data ?? [];
+
+  const { score: globalScore, penalty } = computeGlobalScore(domains, vulns);
+  const open = vulns.filter((v) => v.status === "open").length;
+  const critical = vulns.filter((v) => v.severity === "critical").length;
+
+  // Rebuild trend with computed live score as "Today"
+  const trend = snaps.length
+    ? [...snaps.slice(0, -1), { id: -1, day: "Today", score: globalScore }]
+    : [{ id: -1, day: "Today", score: globalScore }];
+  const max = Math.max(...trend.map((s) => s.score));
+  const min = Math.min(...trend.map((s) => s.score));
+  const first = trend[0]?.score ?? globalScore;
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -29,7 +56,7 @@ function Overview() {
         <div>
           <h1 className="font-mono text-2xl font-bold tracking-tight">Security Operations Overview</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-mono">Last sync: 03:42 UTC</span> · Aggregating signals from 14 sources · NIST CSF · ISO 27001 · CIS v8
+            <span className="font-mono">Live · Lovable Cloud</span> · {domains.length} domains · NIST CSF · ISO 27001 · CIS v8
           </p>
         </div>
         <div className="flex items-center gap-2 font-mono text-xs">
@@ -43,11 +70,11 @@ function Overview() {
           <div className="absolute inset-0 pointer-events-none opacity-30">
             <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-primary to-transparent animate-scan" />
           </div>
-          <ScoreGauge score={globalScore} penalty={criticalPenaltyActive} />
+          <ScoreGauge score={globalScore} penalty={penalty} />
           <div className="mt-4 grid grid-cols-3 gap-3 w-full">
             <Stat icon={AlertTriangle} label="Critical" value={critical} tone="critical" />
             <Stat icon={Activity} label="Open" value={open} tone="warning" />
-            <Stat icon={ShieldCheck} label="Sources" value={14} tone="cyber" />
+            <Stat icon={ShieldCheck} label="Domains" value={domains.length} tone="cyber" />
           </div>
         </Card>
 
@@ -57,19 +84,31 @@ function Overview() {
               <h2 className="font-semibold">Score Trend · 30 days</h2>
               <p className="text-xs text-muted-foreground font-mono mt-1">Weighted average across all domains</p>
             </div>
-            <div className="flex items-center gap-2 text-success font-mono text-xs">
+            <div className={`flex items-center gap-2 font-mono text-xs ${globalScore >= first ? "text-success" : "text-critical"}`}>
               <TrendingUp className="h-3 w-3" />
-              +{globalScore - 612}
+              {globalScore >= first ? "+" : ""}{globalScore - first}
             </div>
           </div>
-          <TrendChart data={scoreTrend} max={max} min={min} />
+          <TrendChart data={trend} max={max} min={min} />
         </Card>
       </div>
 
       <div>
         <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">Domain Scoring · Weighted</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-          {domains.map((d) => <DomainCard key={d.key} d={d} />)}
+          {domains.map((d) => (
+            <DomainCard
+              key={d.key}
+              d={{
+                key: d.key,
+                label: d.label,
+                score: d.score,
+                weight: Number(d.weight),
+                trend: d.trend,
+                controls: { passed: d.controls_passed, total: d.controls_total },
+              }}
+            />
+          ))}
         </div>
       </div>
 
@@ -80,7 +119,7 @@ function Overview() {
             <Link to="/vulnerabilities" className="font-mono text-xs text-primary hover:underline">View all →</Link>
           </div>
           <div className="space-y-2">
-            {vulnerabilities.slice(0, 5).map((v) => (
+            {vulns.slice(0, 5).map((v) => (
               <div key={v.id} className="flex items-center gap-3 rounded-md border border-border bg-background/40 p-3 hover:border-primary/40 transition-colors">
                 <SeverityBadge severity={v.severity} />
                 <div className="flex-1 min-w-0">
@@ -89,7 +128,7 @@ function Overview() {
                     <span className="text-xs text-muted-foreground truncate">{v.title}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground font-mono">
-                    <span>{v.asset}</span><span>·</span><span>CVSS {v.cvss}</span>
+                    <span>{v.asset}</span><span>·</span><span>CVSS {v.cvss.toFixed(1)}</span>
                   </div>
                 </div>
               </div>
@@ -103,11 +142,11 @@ function Overview() {
             <Link to="/recommendations" className="font-mono text-xs text-primary hover:underline">View all →</Link>
           </div>
           <div className="space-y-2">
-            {recommendations.slice(0, 5).map((r) => (
+            {recos.slice(0, 5).map((r) => (
               <div key={r.id} className="rounded-md border border-border bg-background/40 p-3 hover:border-primary/40 transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm">{r.title}</p>
-                  <span className="font-mono text-xs text-success whitespace-nowrap">+{r.impact}</span>
+                  <span className={`font-mono text-xs whitespace-nowrap ${r.applied ? "text-muted-foreground line-through" : "text-success"}`}>+{r.impact}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
                   <span className="uppercase">{r.effort} effort</span><span>·</span><span>{r.framework}</span>
@@ -137,7 +176,7 @@ function TrendChart({ data, max, min }: { data: { day: string; score: number }[]
   const W = 600, H = 180, pad = 20;
   const range = max - min || 1;
   const points = data.map((d, i) => {
-    const x = pad + (i * (W - pad * 2)) / (data.length - 1);
+    const x = pad + (i * (W - pad * 2)) / Math.max(1, data.length - 1);
     const y = H - pad - ((d.score - min) / range) * (H - pad * 2);
     return { x, y, ...d };
   });
