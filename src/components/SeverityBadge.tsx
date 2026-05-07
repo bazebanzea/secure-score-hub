@@ -1,4 +1,4 @@
-import { Severity } from "@/lib/mock-data";
+import type { Severity } from "@/lib/soc-api";
 
 const map: Record<Severity, { label: string; cls: string }> = {
   critical: { label: "CRITICAL", cls: "bg-critical/15 text-critical border-critical/40" },

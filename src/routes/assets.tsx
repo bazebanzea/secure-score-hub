@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
-import { assets, scoreColor } from "@/lib/mock-data";
-import { Server, Laptop, Cloud, Shield, Network } from "lucide-react";
+import { useAssets, scoreColor } from "@/lib/soc-api";
+import { Server, Laptop, Cloud, Shield, Network, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/assets")({
   head: () => ({
@@ -16,6 +16,9 @@ export const Route = createFileRoute("/assets")({
 const icons: Record<string, any> = { Server, Endpoint: Laptop, "Cloud Resource": Cloud, Identity: Shield, Network };
 
 function AssetsPage() {
+  const { data: assets = [], isLoading } = useAssets();
+  if (isLoading) return <Loading />;
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
       <div>
@@ -64,6 +67,14 @@ function AssetsPage() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function Loading() {
+  return (
+    <div className="flex h-[60vh] items-center justify-center text-muted-foreground gap-2">
+      <Loader2 className="h-4 w-4 animate-spin" /> <span className="font-mono text-xs">Loading…</span>
     </div>
   );
 }
