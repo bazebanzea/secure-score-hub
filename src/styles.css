@@ -1,5 +1,9 @@
 @import "tailwindcss" source(none);
 @source "../src";
+@source inline("text-success text-warning text-critical text-cyber text-destructive");
+@source inline("bg-success bg-warning bg-critical bg-cyber bg-destructive");
+@source inline("border-success/40 border-warning/40 border-critical/40 border-cyber/40 border-destructive/40 border-primary/40");
+@source inline("bg-success/15 bg-warning/15 bg-critical/15 bg-destructive/15");
 @import "tw-animate-css";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
