@@ -14,7 +14,184 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assets: {
+        Row: {
+          created_at: string
+          criticality: string
+          exposure: string
+          id: string
+          name: string
+          owner: string
+          score: number
+          type: string
+          vulns: number
+        }
+        Insert: {
+          created_at?: string
+          criticality: string
+          exposure: string
+          id: string
+          name: string
+          owner: string
+          score?: number
+          type: string
+          vulns?: number
+        }
+        Update: {
+          created_at?: string
+          criticality?: string
+          exposure?: string
+          id?: string
+          name?: string
+          owner?: string
+          score?: number
+          type?: string
+          vulns?: number
+        }
+        Relationships: []
+      }
+      domains: {
+        Row: {
+          controls_passed: number
+          controls_total: number
+          key: string
+          label: string
+          score: number
+          trend: number
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          controls_passed?: number
+          controls_total?: number
+          key: string
+          label: string
+          score: number
+          trend?: number
+          updated_at?: string
+          weight: number
+        }
+        Update: {
+          controls_passed?: number
+          controls_total?: number
+          key?: string
+          label?: string
+          score?: number
+          trend?: number
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
+      recommendations: {
+        Row: {
+          applied: boolean
+          description: string
+          domain: string
+          effort: string
+          framework: string
+          id: string
+          impact: number
+          title: string
+        }
+        Insert: {
+          applied?: boolean
+          description: string
+          domain: string
+          effort: string
+          framework: string
+          id: string
+          impact: number
+          title: string
+        }
+        Update: {
+          applied?: boolean
+          description?: string
+          domain?: string
+          effort?: string
+          framework?: string
+          id?: string
+          impact?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendations_domain_fkey"
+            columns: ["domain"]
+            isOneToOne: false
+            referencedRelation: "domains"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      score_snapshots: {
+        Row: {
+          day: string
+          id: number
+          recorded_at: string
+          score: number
+        }
+        Insert: {
+          day: string
+          id?: number
+          recorded_at?: string
+          score: number
+        }
+        Update: {
+          day?: string
+          id?: number
+          recorded_at?: string
+          score?: number
+        }
+        Relationships: []
+      }
+      vulnerabilities: {
+        Row: {
+          asset: string
+          cve: string
+          cvss: number
+          detected_at: string
+          domain: string
+          framework: string
+          id: string
+          severity: string
+          status: string
+          title: string
+        }
+        Insert: {
+          asset: string
+          cve: string
+          cvss: number
+          detected_at: string
+          domain: string
+          framework: string
+          id: string
+          severity: string
+          status?: string
+          title: string
+        }
+        Update: {
+          asset?: string
+          cve?: string
+          cvss?: number
+          detected_at?: string
+          domain?: string
+          framework?: string
+          id?: string
+          severity?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vulnerabilities_domain_fkey"
+            columns: ["domain"]
+            isOneToOne: false
+            referencedRelation: "domains"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
