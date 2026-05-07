@@ -12,7 +12,7 @@ interface DomainCardProps {
 export function DomainCard({ d }: { d: DomainCardProps & { key: string } }) {
   const color = scoreColor(d.score);
   const colorVar = `var(--color-${color})`;
-  const Icon = icons[d.key];
+  const Icon = icons[d.key] ?? Shield;
   const pct = (d.score / 1000) * 100;
   const ctrlPct = (d.controls.passed / d.controls.total) * 100;
 
