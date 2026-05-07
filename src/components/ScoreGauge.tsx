@@ -1,4 +1,4 @@
-import { scoreColor, scoreLabel } from "@/lib/mock-data";
+import { scoreColor, scoreLabel } from "@/lib/soc-api";
 
 interface Props {
   score: number;
